@@ -7,7 +7,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.a962n.groupieLoadMore.core.GroupieLoadMoreAdapter
+import com.example.a962n.groupieLoadMore.core.GroupLoadMoreAdapter
 import com.example.a962n.groupieLoadMore.core.LoadMoreState
 import com.example.a962n.groupieLoadMore.databinding.ActivityMainBinding
 import com.xwray.groupie.GroupieViewHolder
@@ -15,7 +15,7 @@ import com.xwray.groupie.Section
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private var adapter = GroupieLoadMoreAdapter<GroupieViewHolder>()
+    private var adapter = GroupLoadMoreAdapter<GroupieViewHolder>()
     private var section = Section()
 
     private val viewModel by lazy {
@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initialize() {
         adapter.add(section)
-        adapter.setListener(object : GroupieLoadMoreAdapter.Listener {
+        adapter.setListener(object : GroupLoadMoreAdapter.Listener {
             override fun onLoadMore() {
                 viewModel.fetchUserList()
             }

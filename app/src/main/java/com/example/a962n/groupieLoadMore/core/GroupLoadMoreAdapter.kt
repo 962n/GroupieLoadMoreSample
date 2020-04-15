@@ -83,20 +83,60 @@ private class LoadMoreItem constructor(
     override fun isLongClickable() = false
 }
 
-class GroupieLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
+/**
+ * 追加読み込みに対応したGroupAdapter
+ * 状態によって、最後尾にローディング or 再試行ボタンを表示する。
+ */
+class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
 
     private var state: LoadMoreState = LoadMoreState.Ready
     private var listener: Listener? = null
 
+    /**
+     * 追加読み込み用のリスナー
+     */
     interface Listener {
+        /**
+         * 追加処理を実装してください
+         */
         fun onLoadMore()
+
+        /**
+         * リトライ処理を実装してください。
+         */
         fun onRetry()
     }
 
+    /**
+     * リスナー設定処理
+     * @param listener 追加読み込み用のリスナー
+     */
     fun setListener(listener: Listener?) {
         this.listener = listener
     }
 
+    /**
+     * 状態の設定処理
+     * @param state 追加読み込み状態
+     */
+    fun setState(state: LoadMoreState) {
+        val previousState = this.state
+        val hadExtraRow = hasExtraRow()
+        this.state = state
+        val hasExtraRow = hasExtraRow()
+        // 最後尾のアイテム表示に変更が起きたかどうか
+        val hasChangedExtra = hadExtraRow != hasExtraRow
+        // 最後尾のアイテムの中身(ローディング or 再試行)に変更が起きたかどうか
+        val hasChangedExtraContent = hasExtraRow && previousState != this.state
+        if (hasChangedExtra || hasChangedExtraContent) {
+            /**
+             * Note: 本来であればnotifyItemInserted,notifyItemRemoved,notifyItemChangedなどの
+             *       部分更新で最後尾のアイテム更新をしたいが、部分更新で行うと勝手にスクロール位置がずれてしまうケースがある。
+             *       そのため、notifyDataSetChangedで更新を行う。
+             */
+            notifyDataSetChanged()
+        }
+    }
 
     private val innerScrollListener = object : RecyclerView.OnScrollListener() {
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -124,6 +164,10 @@ class GroupieLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
             }
 
             if (totalItemCount * 0.9 < lastVisibleItemPosition + 1) {
+                /**
+                 * Note: 一番最下部までスクロールしたかどうかではなく
+                 *       スクロール位置が全体アイテム数の90%を超えたタイミングでコールバックを実行。(プリフェッチ)
+                 */
                 listener?.apply {
                     setState(LoadMoreState.Loading)
                     this.onLoadMore()
@@ -132,27 +176,24 @@ class GroupieLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
         }
     }
 
+    /**
+     * 実際のアイテム数を返却する。
+     * (ローディング or 再試行ボタン用の表示アイテムがあるため)
+     * @return 実際のアイテム数
+     */
     fun getActualItemCount(): Int {
         return super.getItemCount()
     }
 
+    /**
+     * 最後尾にローディング or 再試行用のアイテムを表示させるかどうか
+     * @return true:表示させる / false: 表示させない
+     */
     private fun hasExtraRow(): Boolean {
         return when (state) {
             is LoadMoreState.Loading -> true
             is LoadMoreState.Retry -> true
             else -> false
-        }
-    }
-
-    fun setState(state: LoadMoreState) {
-        val previousState = this.state
-        val hadExtraRow = hasExtraRow()
-        this.state = state
-        val hasExtraRow = hasExtraRow()
-        val hasChangedExtra = hadExtraRow != hasExtraRow
-        val hasChangedExtraContent = hasExtraRow && previousState != this.state
-        if (hasChangedExtra || hasChangedExtraContent) {
-            notifyDataSetChanged()
         }
     }
 
