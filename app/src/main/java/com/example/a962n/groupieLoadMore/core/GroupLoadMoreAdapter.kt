@@ -31,6 +31,7 @@ sealed class LoadMoreState {
 
     /**
      * もうこれ以上、追加読み込みをしない状態。
+     * 本状態を設定した場合、以降コールバックは呼ばれなくなる。
      */
     object NoMore : LoadMoreState() {
         override fun getId() = this.javaClass.simpleName.hashCode().toLong()
@@ -90,29 +91,31 @@ private class LoadMoreItem constructor(
 class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
 
     private var state: LoadMoreState = LoadMoreState.Ready
-    private var listener: Listener? = null
+    private var onLoadingListener: OnLoadingListener? = null
 
     /**
      * 追加読み込み用のリスナー
      */
-    interface Listener {
+    interface OnLoadingListener {
         /**
-         * 追加処理を実装してください
+         * 追加読み込み処理を実装してください。
+         * 追加読み込み完了時はReady,NoMore,RetryのどれかをsetStateにて設定してください。
          */
         fun onLoadMore()
 
         /**
          * リトライ処理を実装してください。
+         * リトライ処理完了時はReady,NoMoreのどちらかをsetStateにて設定してください。
          */
         fun onRetry()
     }
 
     /**
      * リスナー設定処理
-     * @param listener 追加読み込み用のリスナー
+     * @param onLoadingListener 追加読み込み用のリスナー
      */
-    fun setListener(listener: Listener?) {
-        this.listener = listener
+    fun setOnLoadingListener(onLoadingListener: OnLoadingListener?) {
+        this.onLoadingListener = onLoadingListener
     }
 
     /**
@@ -165,10 +168,10 @@ class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
 
             if (totalItemCount * 0.9 < lastVisibleItemPosition + 1) {
                 /**
-                 * Note: 一番最下部までスクロールしたかどうかではなく
+                 * Note: 最下部までスクロールしたかどうかではなく
                  *       スクロール位置が全体アイテム数の90%を超えたタイミングでコールバックを実行。(プリフェッチ)
                  */
-                listener?.apply {
+                onLoadingListener?.apply {
                     setState(LoadMoreState.Loading)
                     this.onLoadMore()
                 }
@@ -212,7 +215,7 @@ class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
         return when (hasExtraRow() && lastPosition == position) {
             true -> LoadMoreItem(state) {
                 setState(LoadMoreState.Loading)
-                listener?.onRetry()
+                onLoadingListener?.onRetry()
             }
             false -> super.getItem(position)
         }

@@ -24,6 +24,7 @@ class DummyUserListRepositoryImpl : UserListRepository {
         onSuccess: (List<UserEntity>) -> Unit,
         onError: (Throwable) -> Unit
     ) {
+        // サンプルの例として3回に1回エラーを発生させる
         fetchCount++
         when (fetchCount % 3 == 0) {
             true -> {

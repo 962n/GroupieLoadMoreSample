@@ -14,8 +14,10 @@ class MainViewModel constructor(
     private var nextPage = 0
     var list: MutableLiveData<List<UserEntity>> = MutableLiveData(emptyList())
     val loadFailed: MutableLiveData<Throwable> = MutableLiveData()
+    val isLoading: MutableLiveData<Boolean> = MutableLiveData()
 
     fun refresh() {
+        isLoading.value = true
         nextPage = 0
         fetchUserList()
     }
@@ -27,12 +29,16 @@ class MainViewModel constructor(
             {
                 val mutableList = list.value?.toMutableList() ?: mutableListOf()
                 if (nextPage == 0) {
+                    isLoading.value = false
                     mutableList.removeAll { true }
                 }
                 mutableList.addAll(it)
                 nextPage++
                 list.value = mutableList
             }, {
+                if (nextPage == 0) {
+                    isLoading.value = false
+                }
                 loadFailed.value = it
             }
         )

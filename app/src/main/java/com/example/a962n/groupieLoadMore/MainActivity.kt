@@ -40,7 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initialize() {
         adapter.add(section)
-        adapter.setListener(object : GroupLoadMoreAdapter.Listener {
+        adapter.setOnLoadingListener(object : GroupLoadMoreAdapter.OnLoadingListener {
             override fun onLoadMore() {
                 viewModel.fetchUserList()
             }
@@ -49,14 +49,12 @@ class MainActivity : AppCompatActivity() {
             }
         })
         viewModel.loadFailed.observe(this, Observer {
-            binding.swipeRefresh.isRefreshing = false
             adapter.setState(LoadMoreState.Retry(it.message))
         })
         viewModel.list.observe(this, Observer {
             val items = it.map { entity -> UserListItem(entity) }
             section.update(items)
-            binding.swipeRefresh.isRefreshing = false
-            when(items.size > 100) {
+            when (items.size > 100) {
                 true -> adapter.setState(LoadMoreState.NoMore)
                 false -> adapter.setState(LoadMoreState.Ready)
             }
@@ -65,6 +63,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initializeView(binding: ActivityMainBinding) {
         this.binding = binding
+
         binding.swipeRefresh.setOnRefreshListener {
             viewModel.refresh()
         }
@@ -72,6 +71,8 @@ class MainActivity : AppCompatActivity() {
             binding.recyclerView.layoutManager = LinearLayoutManager(this)
             binding.recyclerView.adapter = adapter
         }
+        binding.lifecycleOwner = this
+        binding.viewModel = viewModel
     }
 
 }
