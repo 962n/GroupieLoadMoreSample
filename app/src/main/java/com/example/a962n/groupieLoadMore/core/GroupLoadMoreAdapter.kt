@@ -92,6 +92,10 @@ class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
 
     private var state: LoadMoreState = LoadMoreState.Ready
     private var onLoadingListener: OnLoadingListener? = null
+    private val retryListener:() -> Unit = {
+        setState(LoadMoreState.Loading)
+        onLoadingListener?.onRetry()
+    }
 
     /**
      * 追加読み込み用のリスナー
@@ -193,7 +197,7 @@ class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
      * @return true:表示させる / false: 表示させない
      */
     private fun hasExtraRow(): Boolean {
-        return when (state) {
+        return when (this.state) {
             is LoadMoreState.Loading -> true
             is LoadMoreState.Retry -> true
             else -> false
@@ -213,15 +217,14 @@ class GroupLoadMoreAdapter<VH : GroupieViewHolder> : GroupAdapter<VH>() {
     override fun getItem(position: Int): Item<*> {
         val lastPosition = itemCount - 1
         return when (hasExtraRow() && lastPosition == position) {
-            true -> LoadMoreItem(state) {
-                setState(LoadMoreState.Loading)
-                onLoadingListener?.onRetry()
-            }
+            // ローディング or リトライ 用のアイテムを返却
+            true -> LoadMoreItem(state,retryListener)
             false -> super.getItem(position)
         }
     }
 
     override fun getItemCount(): Int {
+        // 現在のステータスによって表示アイテムを+1する
         return super.getItemCount() + if (hasExtraRow()) 1 else 0
     }
 }
